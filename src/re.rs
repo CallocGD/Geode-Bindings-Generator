@@ -14,11 +14,12 @@ pub static FILTER_FUNCTIONS:Lazy<Regex> = lazy_regex!(r"((?:cocos2d::)?(\w+::)*\
 
 pub static TYPEINFO_VTABLE_ETC:Lazy<Regex> = lazy_regex!(r"(?:typeinfo|vtable|thunk|guard variable)");
 
-pub static OLD_JNI_INTERALS_CHECK: Lazy<Regex> = lazy_regex!(r#"^(?:_JNIEnv|internal|tinyxml2|cocos2d|ObjectDecoder|ObjectDecoderDelegate|pugi|__cxx|__gnu_cxx|std|llvm|tk|xml_|MD5)"#);
+pub static OLD_JNI_INTERALS_CHECK: Lazy<Regex> = lazy_regex!(r#"^(?:_JNIEnv|internal|tinyxml2|ObjectDecoder|ObjectDecoderDelegate|pugi|__cxx|__gnu_cxx|std|llvm|tk|xml_|MD5)"#);
 
 pub static NEW_JNI_INTERNALS_CHECK : Lazy<Regex> = lazy_regex!(r#"^(?:_JNIEnv|internal|tinyxml2|cocos2d|DS_Dictionary|ObjectDecoder|ObjectDecoderDelegate|pugi|__cxx|__gnu_cxx|std|fmt|llvm|tk|xml_|MD5|rtsha1)"#);
 
-pub static SYMBOLS_FILTER: Lazy<Regex> = lazy_regex!(r#"((\w+::)*\w+)::([\w~]+\(.*\))"#);
+// TODO:
+// pub static SYMBOLS_FILTER: Lazy<Regex> = lazy_regex!(r#"((\w+::)*\w+)::([\w~]+\(.*\))"#);
 
 pub static ON_CCOBJECT: Lazy<Regex> = lazy_regex!(r#"^on[\w]+\(cocos2d::CCObject\*\)"#);
 
@@ -28,7 +29,6 @@ pub static IS_ATTR: Lazy<Regex> = lazy_regex!(r#"^is[A-Z]"#);
 
 // My addition vs generate.mjs
 pub static GET_ATTR: Lazy<Regex> = lazy_regex!(r#"^get[A-Z]"#);
-
 
 
 // Example use and help only...
@@ -97,7 +97,7 @@ macro_rules! multi_single_replace {
 /// those with some added modifications to some 
 /// of the regular expression to make up for the 
 /// loss of some functionaility in rust
-/// 
+
 pub fn clean_function_sig(sig:String) -> String {
     let mut new_sig = sig;
 
@@ -105,7 +105,7 @@ pub fn clean_function_sig(sig:String) -> String {
     multi_single_replace!(new_sig, 
         "^(public: |private: |protected: |enum |class |struct |__thiscall |__cdecl )"i, "",
         " &", "&",
-        r" *", "*",
+        r#" \*"#, r#"\*"#,
         r#"\(void\)"#, "()",
         r#"\)"#, ") const",
         r#"(?:,)[^\s]"#, |_| ", ",

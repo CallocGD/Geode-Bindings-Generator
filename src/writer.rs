@@ -6,7 +6,9 @@ pub struct BromaWriter {
 
 impl BromaWriter {
     pub (crate) fn new() -> Self{
-        Self{code:"// clang-format off\n".to_string()}
+        // Immeditately turn off clang formatting...
+        // Give a few lines for anything required by other devs in the prolouge ...
+        Self{code:"// clang-format off\n\n\n".to_string()}
     }
 
     pub (crate) fn declare_class<'a>(&mut self, class_name: &'a str){
@@ -27,6 +29,9 @@ impl BromaWriter {
 
     #[inline]
     pub(crate) fn close_class_declaration(&mut self){
+
+        // Give a few lines of wiggle-room after class declaration finishes 
+        // for other developers to be able to document things...
         self.code += "}\n\n"
     }
 

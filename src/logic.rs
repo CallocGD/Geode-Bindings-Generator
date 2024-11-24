@@ -1,11 +1,12 @@
-use crate::{parsing_logic::is_static_func, re};
-use std::collections::{HashMap, BTreeMap};
+use crate::{parsing_logic::{is_static_func, should_comment_out_function}, re};
+use std::collections::{HashMap, BTreeMap, HashSet};
 use lazy_regex::regex_replace;
 
+use crate::writer::BromaWriter;
 
 
 // Seems to be a boolean in the original script so I made an enum to help with that so an array check is not required...
-enum Group {
+pub enum Group {
     INDEX(i32),
     VTINDEX(i32)
 }
@@ -13,9 +14,10 @@ enum Group {
 #[derive(Clone, Debug)]
 struct FuncTup(String, i32);
 
-trait SignatureResults {
+pub trait SignatureResults {
     fn new() -> Self;
     fn best_effort_guess<'c, 'n>(&self, class_name:&'c str, name:&'n str) -> String;
+    fn set_vtables(&mut self, vtables:HashMap<String, Vec<Vec<String>>>);
     fn vtable_index_for_func<'n, 'f>(&self, name:&'n str, func_sig:&'f str) -> Option<i32>;
     #[inline]
     fn is_virtual<'n, 'f>(&self, name:&'n str, func_sig:&'f str) -> bool{
@@ -36,7 +38,7 @@ trait SignatureResults {
         }
     }
 
-    fn reorder_funcs<'c, 'f>(&self, class_name:&'c str, funcs:&'f Vec<String>) -> BTreeMap<i32, Vec<Vec<String>>>{
+    fn reorder_funcs<'c, 'f>(&self, class_name:&'c str, funcs:&'f Vec<String>) -> BTreeMap<i32, Vec<HashSet<String>>> {
         
         /*
          * HashMap is an unoredered container, and keeps the items 
@@ -47,7 +49,6 @@ trait SignatureResults {
          * 
          * SEE: https://stackoverflow.com/questions/70667002/can-i-iterate-in-order-on-hashmapusize-mystruct
          */
-        
         let mut first:BTreeMap<i32, Vec<FuncTup>> = BTreeMap::new();
         let mut group = 0;
         let mut order = 0;
@@ -62,15 +63,13 @@ trait SignatureResults {
                 }
             }
             // TODO: Remove Clones in when first release is considered stable...
-            if first.get(&group).is_none(){
-                let ft = FuncTup{0:sig.clone(), 1:order.clone()};
-                first.entry(group.clone()).and_modify(|v|v.push(ft.clone())).or_insert(vec![ft]);
-            }
+            let ft = FuncTup{0:sig.clone(), 1:order.clone()};
+            first.entry(group.clone()).and_modify(|v|v.push(ft.clone())).or_insert(vec![ft]);
         }
 
         // second algorythm
     
-        let mut new_funcs:BTreeMap<i32, Vec<Vec<String>>> = BTreeMap::new();
+        let mut new_funcs:BTreeMap<i32, Vec<HashSet<String>>> = BTreeMap::new();
         for (k, v) in first{
             let mut inner_dict:BTreeMap<i32, Vec<String>> = BTreeMap::new();
             for func_pos in v{
@@ -80,11 +79,22 @@ trait SignatureResults {
             // TODO: Remove Cloning...
             for mut values in inner_dict{
                 values.1.sort();
-                new_funcs.entry(k).and_modify(|x|x.push(values.1.clone())).or_insert(vec![values.1]);
+                let mut sorted_values:HashSet<String> = HashSet::new();
+                for i in values.1{
+                    sorted_values.insert(i);
+                }
+
+                new_funcs.entry(k).and_modify(|x|x.push(sorted_values.clone())).or_insert(vec![sorted_values]);
             }
         }
+        println!("DEBUGGING LOGIC FOR REORDER FUNCS {class_name} -> {:?}", new_funcs);
         return new_funcs;
     }
+
+    fn add_func_to_class<'c, 'f>(&mut self ,class_name:&'c str, func_sig:&'f str);
+
+    fn write(&mut self) -> BromaWriter;
+
 }
 
 
@@ -168,7 +178,63 @@ impl SignatureResults for OldSignatureResults {
         return None;
     }
 
+    fn add_func_to_class<'c, 'f>(&mut self, class_name:&'c str, func_sig:&'f str) {
+        self.classes.entry(class_name.to_string()).and_modify(|c|c.push(func_sig.to_string())).or_insert(vec![func_sig.to_string()]);
 
+    }
+
+    fn write(&mut self) -> BromaWriter {
+        let mut bw= BromaWriter::new();
+        println!("(DEBUG CLASSES DICT) DICT SIZE: {}", self.classes.len());
+
+        for (name, v) in self.classes.iter(){
+            // Not required acutally since now we have a 
+            // custom writer to sort some things out for us..
+            // let funcsOut = vec![];
+            
+            // println!("(DEBUG ITERATOR) {}: {}", &name, v.len());
+
+            let funcs = self.reorder_funcs(name, v);
+            // if funcs.len() < 1 {
+            //     continue;
+            // }
+        
+            bw.declare_class(&name);
+            
+
+            for groups in funcs.values(){
+                for group in groups {
+                    for func in group {
+                    let mut full_sig = self.best_effort_guess(&name, &func);
+                    if self.is_virtual(&name, &func){
+                        full_sig = format!("virtual {}", &full_sig);
+                    } else if is_static_func(&name, &func){
+                        full_sig = format!("static {}", &full_sig);
+                    }
+
+                    if func.starts_with("pure_virtual_"){
+                        full_sig += "{} // TODO: figure out what function this is"
+                    } else {
+                        full_sig += ";"
+                    }
+
+                    if should_comment_out_function(&name, &func){
+                        full_sig = format!("// {}", &full_sig);   
+                    }
+
+                    bw.write_fmt(format_args!("    {}\n", full_sig));
+                    }
+                bw.write("\n");
+                }
+            }
+            bw.close_class_declaration();
+        }
+        return bw;
+    }
+
+    fn set_vtables(&mut self, vtables:HashMap<String, Vec<Vec<String>>>) {
+        self.vtables = vtables;
+    }
 
 }
 

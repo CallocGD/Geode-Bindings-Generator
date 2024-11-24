@@ -1,6 +1,8 @@
 // This is where we keep most of the parsing logic that involve things such as vtables...
 
 
+use std::collections::HashMap;
+
 use crate::re;
 
 
@@ -99,14 +101,16 @@ static ENUMS: [&'static str; 90] = [
 
 /// 1.8 or lower...
 pub fn old_should_keep_symbol<'a>(sym:&'a str) -> bool {
+    // println!("DEBUG {sym}");
     if !sym.contains("::") || re::TYPEINFO_VTABLE_ETC.is_match(&sym){
         return false;
     }
     let mut msym = sym.to_string();
-    let class_name = msym.split_off(msym.find(':').unwrap_or(0));
+    let _ = msym.split_off(msym.find(':').unwrap_or(0));
+    let class_name = msym;
     
     if class_name == "cocos2d" {
-        return true;
+        return false;
     }
 
     if class_name == "fmt" {
@@ -115,12 +119,12 @@ pub fn old_should_keep_symbol<'a>(sym:&'a str) -> bool {
     
     for e in ENUMS {
         if class_name == e {
-            return true;
+            return false;
         }
     }
     
     // final check for regex...
-    return re::OLD_JNI_INTERALS_CHECK.is_match(&class_name);
+    return !re::OLD_JNI_INTERALS_CHECK.is_match(&class_name);
 }
 
 // TODO...
@@ -136,6 +140,8 @@ pub fn old_should_keep_symbol<'a>(sym:&'a str) -> bool {
 // }
 
 // 1.9 or newer...
+// TODO New Bindings for later updates...
+#[allow(dead_code)]
 pub fn new_should_keep_symbol<'a>(sym:&'a str) -> bool {
     if !sym.contains("::") || re::TYPEINFO_VTABLE_ETC.is_match(&sym){
         return false;
@@ -199,20 +205,25 @@ pub fn is_static_func<'c, 'f>(class_name:&'c str, func_sig:&'f str) -> bool {
 pub fn old_read_lines(filename:&std::path::Path) -> Vec<String>
 {
     std::fs::read_to_string(filename).unwrap()
-        .lines().filter(|x| old_should_keep_symbol(&x)).map(String::from).collect()
+        .lines()
+        .map(|x| re::clean_function_sig(x.to_string()))
+        .filter(|x| old_should_keep_symbol(&x))
+        .map(String::from)
+        .collect()
 }
 
 // Different logic is being applied to the new version since it uses different techniques 
 // than my original python script for older versions of the game.
-pub fn new_read_lines<'f, P>(filename:&'f std::path::PathBuf) -> Vec<String> {
-    std::fs::read_to_string(filename).unwrap()
-        .lines().map(String::from).collect()
-}
+// pub fn new_read_lines<'f, P>(filename:&'f std::path::PathBuf) -> Vec<String> {
+//     std::fs::read_to_string(filename).unwrap()
+//         .lines().map(String::from).collect()
+// }
 
-pub fn read_vtables_json_file<'f>(filename:&'f std::path::PathBuf) -> serde_json::Value {
+pub fn read_vtables_json_file<'f>(filename:&'f std::path::PathBuf) -> HashMap<String, serde_json::Value> {
     serde_json::from_str(&std::fs::read_to_string(filename)
     .expect("Trouble reading from vtables json file"))
     .expect("Trouble parsing from vtables json file")
 }
+
 
 

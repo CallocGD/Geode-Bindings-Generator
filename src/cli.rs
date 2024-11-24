@@ -24,7 +24,7 @@ pub enum BindingCommand {
     /// Generates Bindings for older versions of GD...
     Old {
         /// Android Symbols laid out in a textfile these should be generated with llvm-nm 
-        andorid_symbols:Option<std::path::PathBuf>,
+        andorid_symbols:std::path::PathBuf,
         /// Vtables obtained from ghidra
         vtables:Option<std::path::PathBuf>
     }

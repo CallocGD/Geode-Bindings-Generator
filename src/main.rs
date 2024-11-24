@@ -1,5 +1,4 @@
 
-
 // command strtucture
 mod cli;
 // static regexs and one replace function
@@ -17,19 +16,19 @@ mod writer;
 
 use cli::{Cli, BindingCommand};
 
+use old_versions::do_old_version;
 
 
 
 
-
-
+#[allow(dead_code, unused_variables)]
 fn main() {
     let cli = <Cli as clap::Parser>::parse();
     
     match cli.command {
         // Newer updates (1.9 and later) (basically everything after the first windows release goes here...)
-        BindingCommand::New { andorid_symbols, cocos2d_symbols, vtables } => (),
-        BindingCommand::Old { andorid_symbols, vtables } => (),
+        BindingCommand::New { andorid_symbols, cocos2d_symbols, vtables } => {println!("Not Implemented Yet but will be in the future...")},
+        BindingCommand::Old { andorid_symbols, vtables } => {do_old_version(andorid_symbols, vtables)}
     }
     // println!("Hello, world!");
 }
