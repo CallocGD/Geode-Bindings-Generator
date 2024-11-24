@@ -14,6 +14,9 @@ have to download whatever the newest release of rust is in order to help out.
 - There is currently no binrary release yet. A workflow is planned in the future for fixing that.
 
 
- 
+# TODOS 
+
+- [X] GD 1.0 - 1.8 support (Completed) Works Smoothly.
+- [ ] GD 1.9+ (Not Implemented Yet...)
 
 
