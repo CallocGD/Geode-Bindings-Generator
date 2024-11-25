@@ -1,8 +1,8 @@
 # Geode-Bindings-Generator
-A New commandline progam that hopefully will soon replace the currently used bidnings scripts in the [bindings repo](https://github.com/geode-sdk/bindings)
-it planned from the start that people should having to go out of thier way to install both node-js and python and many people might already be like 
+A New commandline progam that hopefully will soon replace the currently used bidnings scripts in the [bindings repo](https://github.com/geode-sdk/bindings).
+It was planned from the start beacue people shouldn't having to go out of their way to install both node-js and python and many people might already be like 
 that's a waste of diskspace and I agree. Nobody should have to have had already installed java on top of that to use ghidra. The point here
-is that the installion process in order to use things is too much and I felt a simpler solution was required to solve this problem. 
+is that the installion process in order to use things is way too much and I felt a simpler solution was required to solve this problem. 
 so I am taking both my previously made python script and geode's node-js script and I am merging them together in rust. 
 
 # Notes
